@@ -23,7 +23,7 @@ namespace lotto_finder
 
             string filepath = args[0] as string;
             string text;
-            if (File.Exists(filepath))
+            if (File.Exists(filepath)) // load text and regex all number strings 7-14 digits long
             {
                 text = File.ReadAllText(filepath);
                 var matches = getNumbers(text);
@@ -74,10 +74,10 @@ namespace lotto_finder
             Console.WriteLine(original + " => " + parsed);
         }
 
-        static private bool parseDigits(string input, int k, int parsedPairs, int parsedNumbers, Dictionary<int, int> result, int charIndex)
+        static bool parseDigits(string input, int k, int parsedPairs, int parsedNumbers, Dictionary<int, int> result, int charIndex)
         {
             int singleAdds = 0;
-            if (parsedPairs == k)
+            if (parsedPairs == k) // found all the pairs, so single up the rest of the string
             {
                 for (int i = charIndex; i < input.Length; i++)
                 {
@@ -92,25 +92,28 @@ namespace lotto_finder
                 }
             }
 
-            if (parsedNumbers == (input.Length - (k*2) + k ) & parsedPairs == k)
+            // if all pairs found AND the right number of lotto numbers success
+            if (parsedNumbers == (input.Length - (k*2) + k ) && parsedPairs == k)
             { 
                 printDictionary(result); // print out result 
 
-                for (int i = 0; i < singleAdds; i++ )
-                {
-                    result.Remove(--parsedNumbers);
-                }
+                // loop for finding other combinations in the same string
+                //for (int i = 0; i < singleAdds; i++ )
+                //{
+                //    result.Remove(--parsedNumbers);
+                //} 
                 // for now just return true on first valid combination
                 return true;
             }
             else
-            {
+            {   // wipe out the single digits, total # or wrong number of pairs
                 for (int i = 0; i < singleAdds; i++)
                 {
                     result.Remove(--parsedNumbers);
                 }
             }
             
+            // iterate the string
             for (int i = charIndex; i < input.Length-1; )
             {
                 var twoDigit = Convert.ToInt16(input.Substring(i, 2));
@@ -119,16 +122,17 @@ namespace lotto_finder
                     result.Add(parsedNumbers++, twoDigit); // add two digits at start index 
                     parsedPairs++;
                     if (parseDigits(input, k, parsedPairs, parsedNumbers, result, i + 2)) // recurse on next two digit number
-                        return true;
-                    result.Remove(--parsedNumbers); // remove last added number on result
+                        return true; //quit the loop if the recursive call found a match
+                    result.Remove(--parsedNumbers); //otherwise remove last added number on result
                     parsedPairs--;
                 }
-                var singleDigit = Convert.ToInt32(input.Substring(i++, 1));
+                var singleDigit = Convert.ToInt32(input.Substring(i++, 1)); // add single digit at start index
                 if (!isValidNumber(singleDigit, result))
-                    break; // both single and double digits at charIndex failed, just quit the loop
+                    break; // both single and double digits at charIndex failed, just quit the loop bad string
                 result.Add(parsedNumbers++, singleDigit);
             }
 
+            // this recursive call was a bust, remove all the last added single digit numbers
             foreach (var element in result.OrderByDescending(x => x.Key))
             {
                 if (element.Value < 10)
